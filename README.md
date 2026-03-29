@@ -1,6 +1,10 @@
 # CS149-ProjectFirstAssignment
 Group Project by Elowyn and Alisher
 
+Project Specifications...
+
+vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+
 The topic of the project is File Management system.
 
 You must write the code under Linux environment and use C language to implement the file system.
