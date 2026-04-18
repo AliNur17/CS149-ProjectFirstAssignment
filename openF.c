@@ -2,53 +2,103 @@
 #include <string.h>
 #include "commands.h"
 #include "fs_state.h"
+#include "openF_helpers.h"
 
 void openF(char *spec, char *args)
 {
-    if (strcmp(spec, "-list") == 0) {
+    const char *mode;
+    FileRecord *file;
+    char fileName[MAX_NAME];
+    int i;
+
+    if (spec != NULL && strcmp(spec, "-list") == 0) {
         listClosedFiles();
         return;
     }
 
-    File *f = findFile(args);
-    if (!f) {
-        printf("File not found.\n");
-        return;
-    }
-
-    if (strcmp(spec, "-edit") == 0) {
-        if (!f->canWrite) {
-            printf("No write permission.\n");
+    if (spec != NULL && strcmp(spec, "-edit") == 0) {
+        if (args == NULL || strlen(args) == 0) {
+            printf("usage: openF -edit <file>\n");
             return;
         }
-        f->isOpen = 1;
-        f->fd = nextFD++;
-        printf("Editing %s (fd=%d)\n", args, f->fd);
-        return;
-    }
 
-    if (strcmp(spec, "-content") == 0) {
-        if (!f->canRead) {
-            printf("No read permission.\n");
+        if (!fsExtractFileName(args, fileName, sizeof(fileName))) {
+            printf("openF: invalid file path '%s'\n", args);
             return;
         }
-        printf("Content of %s:\n%s\n", args, f->content);
+
+        file = searchCentral(fileName, NULL);
+        if (file == NULL) {
+            printf("openF: cannot open '%s': No such file\n", args);
+            return;
+        }
+
+        editFile(file);
         return;
     }
 
-    if (strcmp(spec, "-r") == 0) {
-        f->canRead = 1;
-        f->canWrite = 0;
-    } else if (strcmp(spec, "-w") == 0) {
-        f->canRead = 0;
-        f->canWrite = 1;
-    } else {
-        f->canRead = 1;
-        f->canWrite = 1;
+    if (spec != NULL && strcmp(spec, "-content") == 0) {
+        if (args == NULL || strlen(args) == 0) {
+            printf("usage: openF -content <file>\n");
+            return;
+        }
+
+        if (!fsExtractFileName(args, fileName, sizeof(fileName))) {
+            printf("openF: invalid file path '%s'\n", args);
+            return;
+        }
+
+        file = searchCentral(fileName, NULL);
+        if (file == NULL) {
+            printf("openF: cannot open '%s': No such file\n", args);
+            return;
+        }
+
+        showFileContent(file);
+        return;
     }
 
-    f->isOpen = 1;
-    f->fd = nextFD++;
+    if (args == NULL || strlen(args) == 0) {
+        printf("usage: openF [-r|-w|-rw] <file>\n");
+        return;
+    }
 
-    printf("Opened %s (fd=%d)\n", args, f->fd);
+    if (!fsExtractFileName(args, fileName, sizeof(fileName))) {
+        printf("openF: invalid file path '%s'\n", args);
+        return;
+    }
+
+    if (spec == NULL || strlen(spec) == 0 || strcmp(spec, "-r") == 0)
+        mode = "r";
+    else if (strcmp(spec, "-w") == 0)
+        mode = "w";
+    else if (strcmp(spec, "-rw") == 0)
+        mode = "rw";
+    else {
+        printf("openF: invalid option '%s'\n", spec);
+        return;
+    }
+
+    file = searchCentral(fileName, NULL);
+    if (file == NULL) {
+        printf("openF: cannot open '%s': No such file\n", args);
+        return;
+    }
+
+    for (i = 0; i < MAX_OPEN; i++) {
+        if (!openTable[i].used) {
+            openTable[i].used = 1;
+            openTable[i].fd = nextFD++;
+            strncpy(openTable[i].name, fileName, MAX_NAME - 1);
+            openTable[i].name[MAX_NAME - 1] = '\0';
+            strncpy(openTable[i].mode, mode, 3);
+            openTable[i].mode[3] = '\0';
+
+            printf("opened '%s' as fd %d (%s)\n",
+                   fileName, openTable[i].fd, openTable[i].mode);
+            return;
+        }
+    }
+
+    printf("openF: too many open files\n");
 }
