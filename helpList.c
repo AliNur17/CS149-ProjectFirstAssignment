@@ -39,7 +39,10 @@ void helpList(char *spec, char *args)
     printf("        Display all currently closed files that may be opened.\n");
     printf("\n");
     printf("    openF -edit\n");
-    printf("        Open a file in a simple vi-like text editing mode.\n");
+    printf("        Open a file in a simple vi-like text editing mode (only if the file has write or read/write permissions).\n");
+    printf("\n");
+    printf("    openF -content\n");
+    printf("        Open a file and display its contents to shell (only if the file has read or read/write permissions).\n");
     printf("\n");
     printf("    closeF\n");
     printf("        Close an active file descriptor.\n");
