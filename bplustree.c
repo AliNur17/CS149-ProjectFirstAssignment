@@ -5,19 +5,12 @@
 #include <ctype.h>
 
 #define MAX_NAME 128
-#define MAX_KEYS 3
-#define MAX_CHILDREN 4
-#define MAX_OPEN 32
 #define MAX_PATH 256
 #define MAX_CONTENT 4096
 #define FS_MAX_ENTRIES 256
-
-typedef struct {
-    char name[MAX_NAME];
-    char path[MAX_PATH];
-    int isDirectory;
-    int size;
-} FsEntryView;
+#define MAX_KEYS 3
+#define MAX_CHILDREN 4
+#define MAX_OPEN 32
 
 typedef enum {
     TREE_ALPHA = 0,
@@ -49,6 +42,13 @@ typedef struct {
     char name[MAX_NAME];
     char mode[4];
 } OpenFile;
+
+typedef struct {
+    char name[MAX_NAME];
+    char path[MAX_PATH];
+    int isDirectory;
+    int size;
+} FsEntryView;
 
 /* shared global state */
 BPlusNode *treeRoots[3] = {NULL, NULL, NULL};
