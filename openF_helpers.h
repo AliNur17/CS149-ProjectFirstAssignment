@@ -1,7 +1,8 @@
 #ifndef OPENF_HELPERS_H
 #define OPENF_HELPERS_H
 
-#define MAX_NAME 128
+#include "fs_state.h"
+
 #define MAX_OPEN 32
 #define MAX_EDIT_BUFFER 4096
 #define MAX_EDIT_LINES 256
@@ -15,6 +16,8 @@ typedef enum {
 
 typedef struct FileRecord {
     char name[MAX_NAME];
+    char path[MAX_PATH];
+    char content[MAX_CONTENT];
     int inode;
     int size;
 } FileRecord;
