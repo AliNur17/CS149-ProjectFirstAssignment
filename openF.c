@@ -4,11 +4,28 @@
 #include "fs_state.h"
 #include "openF_helpers.h"
 
+static FileRecord *resolveFileTarget(const char *arg, char *normalized, size_t normalizedSize)
+{
+    FileRecord *file;
+
+    if (!fsNormalizePath(arg, normalized, normalizedSize))
+        return NULL;
+
+    file = fsFindByPath(normalized);
+    if (file != NULL)
+        return file;
+
+    if (strchr(arg, '/') == NULL && strchr(arg, '\\') == NULL)
+        return fsFindByName(arg);
+
+    return NULL;
+}
+
 void openF(char *spec, char *args)
 {
     const char *mode;
     FileRecord *file;
-    char fileName[MAX_NAME];
+    char normalized[MAX_PATH];
     int i;
 
     if (spec != NULL && strcmp(spec, "-list") == 0) {
@@ -22,13 +39,8 @@ void openF(char *spec, char *args)
             return;
         }
 
-        if (!fsExtractFileName(args, fileName, sizeof(fileName))) {
-            printf("openF: invalid file path '%s'\n", args);
-            return;
-        }
-
-        file = searchCentral(fileName, NULL);
-        if (file == NULL) {
+        file = resolveFileTarget(args, normalized, sizeof(normalized));
+        if (file == NULL || file->isDirectory) {
             printf("openF: cannot open '%s': No such file\n", args);
             return;
         }
@@ -43,13 +55,8 @@ void openF(char *spec, char *args)
             return;
         }
 
-        if (!fsExtractFileName(args, fileName, sizeof(fileName))) {
-            printf("openF: invalid file path '%s'\n", args);
-            return;
-        }
-
-        file = searchCentral(fileName, NULL);
-        if (file == NULL) {
+        file = resolveFileTarget(args, normalized, sizeof(normalized));
+        if (file == NULL || file->isDirectory) {
             printf("openF: cannot open '%s': No such file\n", args);
             return;
         }
@@ -60,11 +67,6 @@ void openF(char *spec, char *args)
 
     if (args == NULL || strlen(args) == 0) {
         printf("usage: openF [-r|-w|-rw] <file>\n");
-        return;
-    }
-
-    if (!fsExtractFileName(args, fileName, sizeof(fileName))) {
-        printf("openF: invalid file path '%s'\n", args);
         return;
     }
 
@@ -79,8 +81,8 @@ void openF(char *spec, char *args)
         return;
     }
 
-    file = searchCentral(fileName, NULL);
-    if (file == NULL) {
+    file = resolveFileTarget(args, normalized, sizeof(normalized));
+    if (file == NULL || file->isDirectory) {
         printf("openF: cannot open '%s': No such file\n", args);
         return;
     }
@@ -89,13 +91,13 @@ void openF(char *spec, char *args)
         if (!openTable[i].used) {
             openTable[i].used = 1;
             openTable[i].fd = nextFD++;
-            strncpy(openTable[i].name, fileName, MAX_NAME - 1);
+            strncpy(openTable[i].name, file->name, MAX_NAME - 1);
             openTable[i].name[MAX_NAME - 1] = '\0';
             strncpy(openTable[i].mode, mode, 3);
             openTable[i].mode[3] = '\0';
 
             printf("opened '%s' as fd %d (%s)\n",
-                   fileName, openTable[i].fd, openTable[i].mode);
+                   file->path, openTable[i].fd, openTable[i].mode);
             return;
         }
     }

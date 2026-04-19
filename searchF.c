@@ -6,19 +6,23 @@
 
 void searchF(char *spec, char *args)
 {
-    char fileName[MAX_NAME];
+    char normalized[MAX_PATH];
     FileRecord *f;
 
-    if (spec != NULL && strcmp(spec, "-dirL") == 0) {
+    if (spec != NULL && (strcmp(spec, "-dirL") == 0 || strcmp(spec, "-dirl") == 0)) {
         FsEntryView entries[FS_MAX_ENTRIES];
         int count;
         int i;
 
         count = fsGetEntries(entries, FS_MAX_ENTRIES);
 
+        if (count == 0) {
+            printf("(empty)\n");
+            return;
+        }
+
         for (i = 0; i < count; i++) {
-            if (!entries[i].isDirectory)
-                printf("%s -> %s\n", entries[i].name, entries[i].path);
+            printf("%s%s\n", entries[i].path, entries[i].isDirectory ? "/" : "");
         }
         return;
     }
@@ -28,17 +32,22 @@ void searchF(char *spec, char *args)
         return;
     }
 
-    if (!fsExtractFileName(args, fileName, sizeof(fileName))) {
-        printf("searchF: invalid file path '%s'\n", args);
+    if (!fsNormalizePath(args, normalized, sizeof(normalized))) {
+        printf("searchF: invalid path '%s'\n", args);
         return;
     }
 
-    f = searchCentral(fileName, NULL);
+    f = fsFindByPath(normalized);
+    if (f == NULL && strchr(args, '/') == NULL && strchr(args, '\\') == NULL)
+        f = searchCentral(args, NULL);
 
     if (f == NULL) {
-        printf("File not found.\n");
+        printf("searchF: '%s' not found\n", args);
         return;
     }
 
-    printf("Found: %s\nPath: %s\n", f->name, f->path);
+    if (f->isDirectory)
+        printf("directory: %s\n", f->path);
+    else
+        printf("file: %s\n", f->path);
 }

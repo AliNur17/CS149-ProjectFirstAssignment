@@ -1,46 +1,59 @@
 #include <stdio.h>
 #include <string.h>
 #include "commands.h"
-
-#define MAX_NAME 128
-
-typedef enum {
-    TREE_ALPHA = 0,
-    TREE_NUM   = 1,
-    TREE_SYM   = 2
-} TreeType;
-
-typedef struct FileRecord {
-    char name[MAX_NAME];
-    int inode;
-    int size;
-} FileRecord;
-
-extern FileRecord *searchCentral(const char *name, TreeType *outType);
-extern int insertFileCentral(const char *name);
+#include "fs_state.h"
 
 void createF(char *spec, char *args)
 {
-    TreeType type;
-    FileRecord *file;
+    char normalized[MAX_PATH];
+    int isDirectory;
 
-    (void)spec;
-
-    if (args == NULL || strlen(args) == 0) {
+    if (args == NULL || args[0] == '\0') {
         printf("usage: createF <file>\n");
+        printf("       createF -mkdir <path>\n");
         return;
     }
 
-    file = searchCentral(args, &type);
-    if (file != NULL) {
-        printf("createF: cannot create '%s': File exists\n", args);
+    if (!fsNormalizePath(args, normalized, sizeof(normalized))) {
+        printf("createF: invalid path '%s'\n", args);
         return;
     }
 
-    if (!insertFileCentral(args)) {
-        printf("createF: failed to create '%s'\n", args);
+    if (spec != NULL && (strcmp(spec, "-mkdir") == 0 || strcmp(spec, "-mkDir") == 0)) {
+        if (!fsIsDirectoryPath(normalized)) {
+            printf("createF: cannot create directory '%s': final path component must not be a file\n", normalized);
+            return;
+        }
+
+        if (fsFindByPath(normalized) != NULL) {
+            printf("createF: cannot create '%s': File exists\n", normalized);
+            return;
+        }
+
+        if (!fsCreateEntry(normalized, 1)) {
+            printf("createF: failed to create '%s'\n", normalized);
+            return;
+        }
+
+        printf("created directory '%s'\n", normalized);
         return;
     }
 
-    printf("created '%s'\n", args);
+    isDirectory = fsIsDirectoryPath(normalized);
+    if (isDirectory) {
+        printf("createF: '%s' looks like a directory path. Use createF -mkdir <path>\n", normalized);
+        return;
+    }
+
+    if (fsFindByPath(normalized) != NULL) {
+        printf("createF: cannot create '%s': File exists\n", normalized);
+        return;
+    }
+
+    if (!fsCreateEntry(normalized, 0)) {
+        printf("createF: failed to create '%s'\n", normalized);
+        return;
+    }
+
+    printf("created file '%s'\n", normalized);
 }

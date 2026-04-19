@@ -14,14 +14,6 @@ typedef enum {
     TREE_SYM   = 2
 } TreeType;
 
-typedef struct FileRecord {
-    char name[MAX_NAME];
-    char path[MAX_PATH];
-    char content[MAX_CONTENT];
-    int inode;
-    int size;
-} FileRecord;
-
 typedef struct {
     int used;
     int fd;
