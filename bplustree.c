@@ -8,6 +8,16 @@
 #define MAX_KEYS 3
 #define MAX_CHILDREN 4
 #define MAX_OPEN 32
+#define MAX_PATH 256
+#define MAX_CONTENT 4096
+#define FS_MAX_ENTRIES 256
+
+typedef struct {
+    char name[MAX_NAME];
+    char path[MAX_PATH];
+    int isDirectory;
+    int size;
+} FsEntryView;
 
 typedef enum {
     TREE_ALPHA = 0,
@@ -17,6 +27,8 @@ typedef enum {
 
 typedef struct FileRecord {
     char name[MAX_NAME];
+    char path[MAX_PATH];
+    char content[MAX_CONTENT];
     int inode;
     int size;
 } FileRecord;
@@ -167,6 +179,10 @@ FileRecord *makeRecord(const char *name)
 
     strncpy(rec->name, name, MAX_NAME - 1);
     rec->name[MAX_NAME - 1] = '\0';
+
+    snprintf(rec->path, sizeof(rec->path), "\\%s", name);
+    rec->content[0] = '\0';
+
     rec->inode = nextInode++;
     rec->size = 0;
 
@@ -489,4 +505,102 @@ int insertFileCentral(const char *name)
     treeRoots[type] = bptInsert(treeRoots[type], type, name, &inserted);
 
     return inserted;
+}
+
+static void collectEntriesFromTree(BPlusNode *node, FsEntryView entries[],
+                                   int maxEntries, int *count)
+{
+    int i;
+
+    if (node == NULL || *count >= maxEntries)
+        return;
+
+    if (node->isLeaf) {
+        for (i = 0; i < node->numKeys && *count < maxEntries; i++) {
+            if (node->records[i] == NULL)
+                continue;
+
+            strncpy(entries[*count].name, node->records[i]->name, MAX_NAME - 1);
+            entries[*count].name[MAX_NAME - 1] = '\0';
+
+            strncpy(entries[*count].path, node->records[i]->path, MAX_PATH - 1);
+            entries[*count].path[MAX_PATH - 1] = '\0';
+
+            entries[*count].isDirectory = 0;
+            entries[*count].size = node->records[i]->size;
+            (*count)++;
+        }
+        return;
+    }
+
+    for (i = 0; i <= node->numKeys; i++)
+        collectEntriesFromTree(node->children[i], entries, maxEntries, count);
+}
+
+int fsExtractFileName(const char *path, char *outName, size_t outSize)
+{
+    const char *lastSlash;
+
+    if (path == NULL || outName == NULL || outSize == 0 || path[0] == '\0')
+        return 0;
+
+    lastSlash = strrchr(path, '\\');
+    if (lastSlash == NULL)
+        lastSlash = strrchr(path, '/');
+
+    if (lastSlash != NULL)
+        path = lastSlash + 1;
+
+    if (path[0] == '\0')
+        return 0;
+
+    strncpy(outName, path, outSize - 1);
+    outName[outSize - 1] = '\0';
+    return 1;
+}
+
+int fsGetEntries(FsEntryView entries[], int maxEntries)
+{
+    int count = 0;
+
+    if (entries == NULL || maxEntries <= 0)
+        return 0;
+
+    collectEntriesFromTree(treeRoots[TREE_ALPHA], entries, maxEntries, &count);
+    collectEntriesFromTree(treeRoots[TREE_NUM],   entries, maxEntries, &count);
+    collectEntriesFromTree(treeRoots[TREE_SYM],   entries, maxEntries, &count);
+
+    return count;
+}
+
+const char *fsGetPathByName(const char *name)
+{
+    FileRecord *rec = searchCentral(name, NULL);
+    if (rec == NULL)
+        return NULL;
+    return rec->path;
+}
+
+const char *fsGetContentByName(const char *name)
+{
+    FileRecord *rec = searchCentral(name, NULL);
+    if (rec == NULL)
+        return NULL;
+    return rec->content;
+}
+
+int fsSetContentByName(const char *name, const char *content)
+{
+    FileRecord *rec = searchCentral(name, NULL);
+    size_t len;
+
+    if (rec == NULL || content == NULL)
+        return -1;
+
+    strncpy(rec->content, content, MAX_CONTENT - 1);
+    rec->content[MAX_CONTENT - 1] = '\0';
+
+    len = strlen(rec->content);
+    rec->size = (int)len;
+    return rec->size;
 }
