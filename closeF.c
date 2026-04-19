@@ -2,21 +2,35 @@
 #include <string.h>
 #include <stdlib.h>
 #include "commands.h"
-#include "fs_state.h"
+#include "openF_helpers.h"
 
 void closeF(char *spec, char *args)
 {
-    if (strcmp(spec, "-list") == 0) {
-        listOpenFiles();
+    int fd;
+    int i;
+
+    if (spec != NULL && strcmp(spec, "-list") == 0) {
+        for (i = 0; i < MAX_OPEN; i++) {
+            if (openTable[i].used) {
+                printf("FD %d: %s (%s)\n",
+                       openTable[i].fd,
+                       openTable[i].name,
+                       openTable[i].mode);
+            }
+        }
         return;
     }
 
-    int fd = atoi(args);
+    if (args == NULL || args[0] == '\0') {
+        printf("usage: closeF <fd>\n");
+        return;
+    }
 
-    for (int i = 0; i < fileCount; i++) {
-        if (files[i].fd == fd && files[i].isOpen) {
-            files[i].isOpen = 0;
-            files[i].fd = -1;
+    fd = atoi(args);
+
+    for (i = 0; i < MAX_OPEN; i++) {
+        if (openTable[i].used && openTable[i].fd == fd) {
+            openTable[i].used = 0;
             printf("Closed FD %d\n", fd);
             return;
         }
