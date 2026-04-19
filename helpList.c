@@ -29,7 +29,7 @@ void helpList(char *spec, char *args)
     printf("\n");
     printf("    createF -mkdir\n");
     printf("        Create a new directory at the specified path.\n");
-    printf("        The path must begin with '\\\\' and use '\\\\' as the separator.\n");
+    printf("        The path must begin with '\\' and use '\\' as the separator.\n");
     printf("        The final path component must be a directory name, not a file.\n");
     printf("\n");
     printf("    openF\n");
@@ -61,7 +61,7 @@ void helpList(char *spec, char *args)
     printf("\n");
     printf("EXAMPLES\n");
     printf("    createF report.txt\n");
-    printf("    createF -mkdir \\\\docs\\\\projects\n");
+    printf("    createF -mkdir \\docs\\projects\n");
     printf("    openF -rw report.txt\n");
     printf("    openF -edit notes.txt\n");
     printf("    openF -list\n");
