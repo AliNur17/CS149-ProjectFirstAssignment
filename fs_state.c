@@ -4,7 +4,6 @@
 
 File files[MAX_FILES];
 int fileCount = 0;
-int nextFD = 1;
 
 File* findFile(const char *name) {
     for (int i = 0; i < fileCount; i++) {
