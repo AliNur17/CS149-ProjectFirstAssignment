@@ -10,7 +10,7 @@ void searchF(char *spec, char *args)
         return;
     }
 
-    File *f = findFile(args);
+    File *f = searchCentral(args);
 
     if (!f) {
         printf("File not found.\n");
