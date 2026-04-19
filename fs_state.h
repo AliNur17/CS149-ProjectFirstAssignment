@@ -1,27 +1,27 @@
 #ifndef FS_STATE_H
 #define FS_STATE_H
 
-#define MAX_FILES 100
-#define MAX_NAME 100
+#include <stddef.h>
+
+#define MAX_NAME 128
 #define MAX_PATH 256
+#define MAX_CONTENT 4096
+#define FS_MAX_ENTRIES 256
 
 typedef struct {
     char name[MAX_NAME];
     char path[MAX_PATH];
-    int isOpen;
-    int fd;
-    int canRead;
-    int canWrite;
-    char content[1024];
-} File;
+    int isDirectory;
+    int size;
+} FsEntryView;
 
-extern File files[MAX_FILES];
-extern int fileCount;
-extern int nextFD;
+/* path/name helpers */
+int fsExtractFileName(const char *path, char *outName, size_t outSize);
 
-File* findFile(const char *name);
-void listOpenFiles();
-void listClosedFiles();
-void listAllFiles();
+/* filesystem lookup/content helpers */
+int fsGetEntries(FsEntryView entries[], int maxEntries);
+const char *fsGetPathByName(const char *name);
+const char *fsGetContentByName(const char *name);
+int fsSetContentByName(const char *name, const char *content);
 
 #endif
