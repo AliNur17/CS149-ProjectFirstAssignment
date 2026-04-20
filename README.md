@@ -1,5 +1,5 @@
 # CS149-ProjectFirstAssignment
-Group Project by Elowyn and Alisher
+Group Project by Junxian and Alisher
 
 Project Specifications...
 
